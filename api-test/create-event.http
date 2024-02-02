@@ -1,0 +1,9 @@
+POST http://localhost:8080/events
+Content-Type: application/json
+
+{
+    "name": "Summer Fest",
+    "description": "on 22nd January",
+    "location": "Goa",
+    "dateTime": "2025-01-01T15:15:00.000Z"
+}
