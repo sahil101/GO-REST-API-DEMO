@@ -1,0 +1,9 @@
+PUT http://localhost:8080/events/2
+Content-Type: application/json
+
+{
+    "name": "Winter Fest",
+    "description": "on 29 February",
+    "location": "Goa",
+    "dateTime": "2025-01-01T15:15:00.000Z"
+}
