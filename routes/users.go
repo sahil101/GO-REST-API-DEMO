@@ -1,13 +1,15 @@
 package routes
 
 import (
+	"fmt"
 	"net/http"
 
 	"example.com/rest-api/models"
+	"example.com/rest-api/util"
 	"github.com/gin-gonic/gin"
 )
 
-func signUp(context *gin.Context) {
+func signup(context *gin.Context) {
 	var user models.User
 
 	err := context.ShouldBindJSON(&user)
@@ -28,18 +30,30 @@ func signUp(context *gin.Context) {
 	context.JSON(http.StatusCreated, gin.H{"message": "User Created"})
 }
 
-// func getEventById(context *gin.Context) {
-// 	eventId, err := strconv.ParseInt(context.Param("id"), 10, 64)
+func login(context *gin.Context) {
+	var user models.User
 
-// 	if err != nil {
-// 		context.JSON(http.StatusBadRequest, gin.H{"error": err})
-// 		return
-// 	}
+	err := context.ShouldBindJSON(&user)
 
-// 	event, err := models.GetEventById(eventId)
-// 	if err != nil {
-// 		context.JSON(http.StatusInternalServerError, gin.H{"message": "Could not get event. Try again Later"})
-// 		return
-// 	}
-// 	context.JSON(http.StatusOK, event)
-// }
+	// may be more accurate
+	if err != nil {
+		context.JSON(http.StatusBadRequest, gin.H{"message": "could not parse data", "error": err})
+		return
+	}
+
+	err = user.ValidateCredentials()
+
+	if err != nil {
+		context.JSON(http.StatusUnauthorized, gin.H{"message": "Could not authenticate user"})
+		return
+	}
+	fmt.Println(user.ID, user.Email, user.Password)
+	token, err := util.GenerateToken(user.Email, user.ID)
+
+	if err != nil {
+		context.JSON(http.StatusInternalServerError, gin.H{"message": "Could not authenticate user", "error": err})
+		return
+	}
+
+	context.JSON(http.StatusOK, gin.H{"message": "Login Successfully", "token": token})
+}

@@ -1,7 +1,10 @@
 package models
 
 import (
+	"errors"
+
 	"example.com/rest-api/db"
+	"example.com/rest-api/util"
 )
 
 type User struct {
@@ -19,8 +22,13 @@ func (u User) Save() error {
 	if err != nil {
 		return err
 	}
+	hashedPassword, err := util.HashPassword(u.Password)
 
-	result, err := preparedQuery.Exec(u.Email, u.Password)
+	if err != nil {
+		return err
+	}
+
+	result, err := preparedQuery.Exec(u.Email, hashedPassword)
 	if err != nil {
 		return err
 	}
@@ -30,69 +38,21 @@ func (u User) Save() error {
 	return err
 }
 
-// func GetAllEvents() ([]Event, error) {
-// 	query := "SELECT * FROM events;"
-// 	rows, err := db.DB.Query(query)
+func (u User) ValidateCredentials() error {
+	query := "SELECT id, password FROM users WHERE email=?"
+	row := db.DB.QueryRow(query, u.Email)
 
-// 	if err != nil {
-// 		return nil, err
-// 	}
+	var retreivePassword string
+	err := row.Scan(&u.ID, &retreivePassword)
 
-// 	defer rows.Close()
-// 	var events []Event
-// 	for rows.Next() {
-// 		var event Event
-// 		err := rows.Scan(&event.ID, &event.Name, &event.Description, &event.Location, &event.DateTime, &event.UserID)
-// 		fmt.Println(err)
-// 		if err != nil {
-// 			return nil, err
-// 		}
+	if err != nil {
+		return errors.New("INVALID CREDENTIALS")
+	}
 
-// 		events = append(events, event)
-// 	}
+	passwordIsValid := util.CheckPasswordHash(u.Password, retreivePassword)
 
-// 	return events, nil
-// }
-
-// func GetEventById(eventId int64) (*Event, error) {
-// 	query := "SELECT * FROM events WHERE id = ?"
-
-// 	row := db.DB.QueryRow(query, eventId)
-
-// 	var event Event
-// 	err := row.Scan(&event.ID, &event.Name, &event.Description, &event.Location, &event.DateTime, &event.UserID)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-
-// 	return &event, nil
-// }
-
-// func (event Event) Update() error {
-// 	query := `UPDATE events
-// 	SET name = ?, description = ?, location = ?, dateTime = ?
-// 	WHERE id = ?`
-
-// 	preparedQuery, err := db.DB.Prepare(query)
-// 	if err != nil {
-// 		return err
-// 	}
-// 	defer preparedQuery.Close()
-
-// 	_, err = preparedQuery.Exec(event.Name, event.Description, event.Location, event.DateTime, event.ID)
-// 	return err
-
-// }
-
-// func (event Event) Delete() error {
-// 	query := `DELETE from events WHERE id = ?`
-
-// 	preparedQuery, err := db.DB.Prepare(query)
-// 	if err != nil {
-// 		return err
-// 	}
-// 	defer preparedQuery.Close()
-
-// 	_, err = preparedQuery.Exec(event.ID)
-// 	return err
-// }
+	if !passwordIsValid {
+		return errors.New("INVALID CREDENTIALS")
+	}
+	return nil
+}
